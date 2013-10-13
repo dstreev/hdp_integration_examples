@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<workflow-app xmlns="uri:oozie:workflow:0.4"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+                  xsi:schemaLocation="uri:oozie:workflow:0.4 http://oozie.apache.org/schemas/workflow-0.4
+    uri:oozie:hive-action:0.4  http://oozie.apache.org/schemas/hive-action-0.4
+    uri:oozie:email-action:0.1  http://oozie.apache.org/schemas/email-action-0.1
+    uri:oozie:sqoop-action:0.4  http://oozie.apache.org/schemas/sqoop-action-0.4
+    uri:oozie:shell-action:0.2  http://oozie.apache.org/schemas/shell-action-0.2
+    uri:oozie:ssh-action:0.1  http://oozie.apache.org/schemas/ssh-action-0.1
+    uri:oozie:sla:0.1  http://oozie.apache.org/schemas/sla-0.1"
+                  name="workflow">
+
+    <start to="prepare"/>
+
+    <action name="prepare">
+        <fs>
+            <!-- Note that we are using an EL constant to get the running user.  This may not
+                 work in your environment if Oozie is configured differently. -->
+            <delete path="${namenode}/user/${wf:user()}/${target_dir_one}"/>
+            <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
+        </fs>
+        <ok to="ingest"/>
+        <error to="problem"/>
+    </action>
+
+    <fork name="ingest">
+        <path start="states-ingest"/>
+        <path start="users-ingest"/>
+    </fork>
+
+    <action name="states-ingest">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <arg>import</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
+            <arg>--table</arg>
+            <arg>${ingestion_table_one}</arg>
+            <arg>--target-dir</arg>
+            <arg>${namenode}/user/${wf:user()}/${target_dir_one}</arg>
+            <!--<arg> -hive-import</arg>-->
+            <!--<arg>${hive_table_one}</arg>-->
+            <!--<arg> -hive-overwrite</arg>-->
+            <!--<arg>${namenode}/user/${user.name}/${ingestion_table_one}</arg>-->
+            <arg>-m</arg>
+            <arg>1</arg>
+        </sqoop>
+        <ok to="ingest-complete"/>
+        <error to="problem"/>
+    </action>
+
+    <action name="users-ingest">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <!--<sqoop:prepare>-->
+            <!--<sqoop:delete path="${namenode}/user/hue/${target_dir_one}"/>-->
+            <!--<sqoop:mkdir path="${namenode}/user/hue/${target_dir_one}"/>-->
+            <!--</sqoop:prepare>-->
+            <!--<sqoop:configuration>-->
+            <!--<sqoop:property>-->
+            <!--<sqoop:name>oozie.use.system.libpath</sqoop:name>-->
+            <!--<sqoop:value>true</sqoop:value>-->
+            <!--</sqoop:property>-->
+            <!--</sqoop:configuration>-->
+            <arg>import</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
+            <arg>--table</arg>
+            <arg>${ingestion_table_two}</arg>
+            <arg>--target-dir</arg>
+            <arg>${namenode}/user/${wf:user()}/${target_dir_two}</arg>
+            <arg>-m</arg>
+            <arg>1</arg>
+        </sqoop>
+        <ok to="ingest-complete"/>
+        <error to="problem"/>
+    </action>
+
+    <join name="ingest-complete" to="setup-db"/>
+
+    <action name="setup-db">
+        <hive xmlns="uri:oozie:hive-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <!-- The proper hive-site.xml needs to be referenced here.  If it isn't, you'll
+                 most likely get Hive errors like 10001 (hive table not found).  When you
+                 publish the oozie workflow to HDFS, grab a copy of a valid hite-site.xml and
+                 put it in the hive subfolder of the oozie workflow.  Then reference it like
+                 below.
+
+                 NOTE: I did try to put a "global" copy in the "share/lib/hive" directory and
+                   then remove the setting below, that didn't work for me.
+                   -->
+            <job-xml>hive/hive-site.xml</job-xml>
+
+            <script>hive/create-db-tables.ddl</script>
+            <param>database=${hive_database}</param>
+            <param>user=${wf:user()}</param>
+
+        </hive>
+        <ok to="join-tables"/>
+        <error to="problem"/>
+    </action>
+
+    <action name="join-tables">
+        <hive xmlns="uri:oozie:hive-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <!-- The proper hive-site.xml needs to be referenced here.  If it isn't, you'll
+                 most likely get Hive errors like 10001 (hive table not found).  When you
+                 publish the oozie workflow to HDFS, grab a copy of a valid hite-site.xml and
+                 put it in the hive subfolder of the oozie workflow.  Then reference it like
+                 below.
+
+                 NOTE: I did try to put a "global" copy in the "share/lib/hive" directory and
+                   then remove the setting below, that didn't work for me.
+                   -->
+            <job-xml>hive/hive-site.xml</job-xml>
+
+            <script>hive/${join_tables_script}</script>
+            <param>database=${hive_database}</param>
+            <param>user=${wf:user()}</param>
+
+        </hive>
+        <ok to="aggregate"/>
+        <error to="problem"/>
+    </action>
+
+    <action name="aggregate">
+        <hive xmlns="uri:oozie:hive-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <job-xml>hive/hive-site.xml</job-xml>
+            <script>hive/${aggregation_script}</script>
+            <param>database=${hive_database}</param>
+            <param>user=${wf:user()}</param>
+        </hive>
+        <ok to="success"/>
+        <error to="problem"/>
+    </action>
+
+    <!-- Requires mail configurations in oozie-site.xml
+
+    NOTE: For local Mac configuation, setup Postfix:
+        http://www.developerfiles.com/how-to-send-smtp-mails-with-postfix-mac-os-x-10-8/
+        and start postfix:
+        sudo postfix start
+
+        oozie.email.smtp.host= (localhost by default)
+        oozie.email.from.address= (oozie@localhost by default)
+        oozie.email.smtp.auth= (false default, set to true if smtp request auth)
+            (for auth) oozie.email.smtp.username=
+                       oozie.email.smtp.password=
+    -->
+
+    <action name="success">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${emailto}</to>
+            <subject>Success with Oozie Job</subject>
+            <body></body>
+        </email>
+        <ok to="done"/>
+        <error to="done"/>
+    </action>
+
+    <action name="problem">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${emailto}</to>
+            <subject>Problem with Oozie Job</subject>
+            <body>Workflow Failed: message[${wf:errorMessage(wf:lastErrorNode())}]</body>
+        </email>
+        <ok to="kill"/>
+        <error to="kill"/>
+    </action>
+
+    <kill name="kill">
+        <message>"Workflow Failed: message[${wf:errorMessage(wf:lastErrorNode())}]"</message>
+    </kill>
+
+    <end name="done"/>
+</workflow-app>

@@ -1,0 +1,6 @@
+-- Setting the Job for Oozie.
+oozie job -oozie http://192.168.32.132:11000/oozie -config sample-one/job-1.properties -submit
+
+oozie job -oozie http://192.168.32.132:11000/oozie -start 0000001-130929204414120-oozie-oozi-W
+
+oozie job -oozie http://192.168.32.132:11000/oozie -kill 0000001-130929204414120-oozie-oozi-W
