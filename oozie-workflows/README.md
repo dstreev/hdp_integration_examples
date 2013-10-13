@@ -47,6 +47,10 @@ External Tables
 </td><td>
 In my sample workflow, I'm using a mizture of EXTERNAL tables in INTERNAL tables.  Just remember that when you DROP a Database (CASCADE), the INTERNAL tables will drop data.  Even when the DATA is NOT in the /apps/hive/warehouse (LOCATION defined).
 </td></tr><tr><td>
+Don't forget to upload your workflow app.
+</td><td>
+During development it's easy to get caught up in rapid changes.  Remember, the oozie workflow application needs to be updated on HDFS, otherwise you won't see your changes.  I write a script that cleans up, deploys and run's the workflow for development and rapid testing.
+</td></tr><tr><td>
 Specifying a Database for Hive in Oozie
 </td><td>
 The Hive action is basically a copy of the Hive CLI interface.  You can't specify an initial database via the CLI interface.  Although, you can specify an "initialization" script.  Make sure you add a "use xxx;" at the top of each of your scripts to ensure the correct database is being used. Failure to specify this can lead to hive 10001 errors (table not found).
