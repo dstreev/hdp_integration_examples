@@ -62,9 +62,9 @@ class mgen:
         first_name = self.first_names[random.randrange(0, len(self.first_names), 1)]
         last_name = self.last_names[random.randrange(0, len(self.last_names), 1)]
         state_code = self.state_codes[random.randrange(0, len(self.state_codes), 1)]        
-        zip = self.generate_zip()
+        zipcode = self.generate_zip()
         city = self.cities[random.randrange(0, len(self.cities), 1)]
-        return first_name, last_name, state_code, city, zip
+        return first_name, last_name, state_code, city, zipcode
 
     def generate_states_table(self):
         try:
@@ -96,8 +96,8 @@ class mgen:
             print "Connected"
 
             for i in range(rowcount): 
-                first_name, last_name, state_code, zip, city = self.generate_row()
-                cursor.execute("INSERT INTO users (first_name, last_name, state_code, city, zipcode) VALUES (%s, %s, %s, %s, %s)", (first_name, last_name, state_code, zip, city))
+                first_name, last_name, state_code, zipcode, city = self.generate_row()
+                cursor.execute("INSERT INTO users (first_name, last_name, state_code, city, zipcode) VALUES (%s, %s, %s, %s, %s)", (first_name, last_name, state_code, zipcode, city))
                 print "inserting user"
             myconnector.commit()
             cursor.close()
