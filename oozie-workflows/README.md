@@ -5,7 +5,6 @@ Throughout this process, I stumbled on several items that may be of interest to 
 <table>
 <tr>
 <th>Issue / Concern</th>
-</tr><tr>
 <th>Solution</th>
 </tr><tr>
 <td>
