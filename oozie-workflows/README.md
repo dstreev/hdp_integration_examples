@@ -5,18 +5,18 @@ Throughout this process, I stumbled on several items that may be of interest to 
 <table>
 <tr>
 <th>Issue / Concern</th>
-</tr>
-<tr>
-<trh>Solution</th>
-</tr>
-<tr>
+</tr><tr>
+<th>Solution</th>
+</tr><tr>
 <td>
 Hive Configuration
- </td>
- <td>You will need to include a 'hive-site.xml' for your environment that the Hive action can use.  See my submit.sh scripts for details on how I got a hive-site.xml to the workflow during deployment.</td>
- </tr><tr><td>
-Hive 10001 Error</td><td>This means that the target table wasn't found.  First place to look is to ensure that the proper "hive-site.xml" is available to the workflow.  I've had my best success with copying a version for your environment into the workflow directory on HDFS and referencing it in your hive action.</td>
-</tr><tr><td>
+</td><td>
+You will need to include a 'hive-site.xml' for your environment that the Hive action can use.  See my submit.sh scripts for details on how I got a hive-site.xml to the workflow during deployment.
+</td></tr><tr><td>
+Hive 10001 Error
+</td><td>
+This means that the target table wasn't found.  First place to look is to ensure that the proper "hive-site.xml" is available to the workflow.  I've had my best success with copying a version for your environment into the workflow directory on HDFS and referencing it in your hive action.
+</td></tr><tr><td>
 Details about errors
 </td><td>
 Start with the Oozie logs.  For more detailed information, you'll need to go to the Fail MR job and drill down into the task logs to get a complete log of the job and failure
