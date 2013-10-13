@@ -6,8 +6,19 @@ Throughout this process, I stumbled on several items that may be of interest to 
 <tr>
 <th>Issue / Concern</th>
 <th>Solution</th>
-</tr><tr>
-<td>
+</tr><tr><td>
+JA008 Error
+</td><td>
+Your libraries aren't being loading.  Ensure you have the correct version of your libraries on HDFS and your Oozie-site.xml file is pointing to the correct location.
+<p>Add oozie.use.system.libpath=true to your job properties files.</p>
+<p>Unzip and upload the $OOZIE_HOME/oozie-sharelib... to an **HDFS** directory that matches the value below in oozie-site.xml</p>
+<p>oozie-site.xml</p>
+<br>oozie.service.WorkflowAppService.system.libpath</p>
+</td></tr><tr><td>
+Sqoop DB Drivers
+</td><td>
+Need to be uploaded to the above sharelib directory under "sqoop" to make it available to sqoop jobs.
+</td></tr><tr><td>
 Hive Configuration
 </td><td>
 You will need to include a 'hive-site.xml' for your environment that the Hive action can use.  See my submit.sh scripts for details on how I got a hive-site.xml to the workflow during deployment.
