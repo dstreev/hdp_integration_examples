@@ -7,6 +7,33 @@ Throughout this process, I stumbled on several items that may be of interest to 
 <th>Issue / Concern</th>
 <th>Solution</th>
 </tr><tr><td>
+Sqoop Import to Hive Table in ORC Format
+</td><td>
+Doesn't work with HDP 1.3.2.  The Sqoop-Hive process is actually done in two steps.
+
+1. Sqoop to HDFS
+2. Sqoop Call Hive CLI to create table, then moves data to table location with a "LOAD DATA INPATH" command. This doesn't
+convert to format.  So the ORC target format isn't honored.  This might also be true for "rc" files as well.
+
+According to "Programming Hive" page 73, Hive doesn't verify that the data being loaded matches the predefined schema.
+It will check that to file format matches, IE: table is a SEQUENCEFILE so should the imported data.
+
+That may be true, but it doesn't fail for the "orc" defined table (the action will succeed) and your table will be corrupt.
+
+If you are going from Sqoop to a Hive Table in "orc" format, you need to do it through an intermediate table (external)
+in the default hive format.  Then use another Oozie action to load the table via a hive script that does an:
+ <pre>
+   FROM staging_table st
+   insert into table target_table
+   SELECT ...
+ </pre>
+</td></tr><tr><td>
+Specifying a Database for Sqoop - Hive Import
+</td><td>
+Use "." notation and prefix the table name with the database name.
+
+There isn't a "hive-database" like argument that can be set for the job.
+</td></tr><tr><td>
 JA008 Error
 </td><td>
 Your libraries aren't being loading.  Ensure you have the correct version of your libraries on HDFS and your Oozie-site.xml file is pointing to the correct location.
@@ -18,6 +45,10 @@ Your libraries aren't being loading.  Ensure you have the correct version of you
 Sqoop DB Drivers
 </td><td>
 Need to be uploaded to the above sharelib directory under "sqoop" to make it available to sqoop jobs.
+</td></tr><tr><td>
+Beware the Sandbox
+</td><td>
+When you do fork/join in Oozie, it will hang if you only have 2 mapper slots available. I deadlock situation occurs because there are not enough slots to process the job and the fork/join.
 </td></tr><tr><td>
 Hive Configuration
 </td><td>

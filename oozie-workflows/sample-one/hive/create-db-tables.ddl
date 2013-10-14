@@ -4,16 +4,17 @@ create database ${database};
 use ${database};
 
 -- Entity Table
-CREATE EXTERNAL TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS users (
 ID INT,
 FIRST_NAME STRING,
 LAST_NAME STRING,
 STATE_CODE STRING,
 CITY STRING,
 ZIP_CODE STRING
-)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-LOCATION '/user/${user}/users';
+);
+-- STORED AS orc tblproperties ("orc.compress"="NONE");
+-- ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+-- LOCATION '/user/${user}/users';
 
 -- State Long Description Table
 CREATE EXTERNAL TABLE IF NOT EXISTS states_long (

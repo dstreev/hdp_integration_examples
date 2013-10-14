@@ -12,70 +12,20 @@
     uri:oozie:sla:0.1  http://oozie.apache.org/schemas/sla-0.1"
                   name="workflow">
 
-    <start to="prepare"/>
+    <start to="setup-db"/>
 
-    <action name="prepare">
-        <fs>
+    <!--<action name="prepare">-->
+        <!--<fs>-->
             <!-- Note that we are using an EL constant to get the running user.  This may not
                  work in your environment if Oozie is configured differently. -->
-            <delete path="${namenode}/user/${wf:user()}/${target_dir_one}"/>
-            <!-- Moved this to the 'prepare' section of the sqoop job to show
+            <!--Moved this to the 'prepare' section of the sqoop job to show
                  an alternate method...
+            <delete path="${namenode}/user/${wf:user()}/${target_dir_one}"/>
             <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>-->
-        </fs>
-        <ok to="ingest"/>
-        <error to="problem"/>
-    </action>
-
-    <fork name="ingest">
-        <path start="states-ingest"/>
-        <path start="users-ingest"/>
-    </fork>
-
-    <action name="states-ingest">
-        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
-            <job-tracker>${jobtracker}</job-tracker>
-            <name-node>${namenode}</name-node>
-            <arg>import</arg>
-            <arg>--connect</arg>
-            <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
-            <arg>--table</arg>
-            <arg>${ingestion_table_one}</arg>
-            <arg>--target-dir</arg>
-            <arg>${namenode}/user/${wf:user()}/${target_dir_one}</arg>
-            <!--<arg> -hive-import</arg>-->
-            <!--<arg>${hive_table_one}</arg>-->
-            <!--<arg> -hive-overwrite</arg>-->
-            <!--<arg>${namenode}/user/${user.name}/${ingestion_table_one}</arg>-->
-            <arg>-m</arg>
-            <arg>1</arg>
-        </sqoop>
-        <ok to="ingest-complete"/>
-        <error to="problem"/>
-    </action>
-
-    <action name="users-ingest">
-        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
-            <job-tracker>${jobtracker}</job-tracker>
-            <name-node>${namenode}</name-node>
-            <prepare>
-                <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
-            </prepare>
-            <arg>import</arg>
-            <arg>--connect</arg>
-            <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
-            <arg>--table</arg>
-            <arg>${ingestion_table_two}</arg>
-            <arg>--target-dir</arg>
-            <arg>${namenode}/user/${wf:user()}/${target_dir_two}</arg>
-            <arg>-m</arg>
-            <arg>1</arg>
-        </sqoop>
-        <ok to="ingest-complete"/>
-        <error to="problem"/>
-    </action>
-
-    <join name="ingest-complete" to="setup-db"/>
+        <!--</fs>-->
+        <!--<ok to="ingest"/>-->
+        <!--<error to="problem"/>-->
+    <!--</action>-->
 
     <action name="setup-db">
         <hive xmlns="uri:oozie:hive-action:0.4">
@@ -97,9 +47,96 @@
             <param>user=${wf:user()}</param>
 
         </hive>
-        <ok to="join-tables"/>
+        <ok to="ingest"/>
         <error to="problem"/>
     </action>
+
+    <fork name="ingest">
+        <path start="states-ingest"/>
+        <path start="users-ingest"/>
+    </fork>
+
+    <action name="states-ingest">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <prepare>
+                <delete path="${namenode}/user/${wf:user()}/${target_dir_one}"/>
+            </prepare>
+            <arg>import</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
+            <arg>--table</arg>
+            <arg>${ingestion_table_one}</arg>
+            <arg>--target-dir</arg>
+            <arg>${namenode}/user/${wf:user()}/${target_dir_one}</arg>
+            <arg>-m</arg>
+            <arg>1</arg>
+        </sqoop>
+        <ok to="ingest-complete"/>
+        <error to="problem"/>
+    </action>
+
+    <action name="users-ingest">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <!--
+            This doesn't appear to be necessary when importing to Hive.  The directory in "target-dir" will
+            be created for the import and then removed after the table has been loaded into hive.
+
+            <prepare>
+                <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
+            </prepare>
+            -->
+            <job-xml>hive/hive-site.xml</job-xml>
+            <arg>import</arg>
+            <!--
+               I found the order of the parameters to be important.
+
+               To Sqoop Import to Hive is actually a two step process.
+               1. Sqoop Table to HDFS (just like any other sqoop job)
+               2. Sqoop creates scripts to "Create" table and "Load" from HDFS and passes it on to Hive CLI (basically).
+
+            -->
+            <arg>--table</arg>
+            <arg>${ingestion_table_two}</arg>
+            <arg>--connect</arg>
+            <arg>jdbc:mysql://localhost:3306/${mysql_db}</arg>
+            <arg>--username</arg>
+            <arg>${mysql_user}</arg>
+            <arg>--password</arg>
+            <arg>${mysql_password}</arg>
+            <!--
+               If the "target-dir" option is not specified, the HDFS directory for stage one is created in the users
+               home directory.
+            -->
+            <arg>-target-dir</arg>
+            <arg>${namenode}/user/${wf:user()}/${target_dir_two}</arg>
+            <arg>--hive-import</arg>
+            <arg>--hive-overwrite</arg>
+            <arg>--hive-home</arg>
+            <arg>/usr/lib/hive</arg>
+            <arg>--hive-table</arg>
+            <arg>${hive_table_two}</arg>
+
+            <!--
+            When this is included, the table MUST not exist.  If it does, the sqoop job will fail with an exit
+            code of 1 (and no real reason given for failure).
+
+            For our job, the table was created when the database was configured in step one.
+
+            <arg>-create-hive-table</arg>
+            -->
+            <arg>-m</arg>
+            <arg>1</arg>
+        </sqoop>
+        <ok to="ingest-complete"/>
+        <error to="problem"/>
+    </action>
+
+    <join name="ingest-complete" to="join-tables"/>
+
 
     <action name="join-tables">
         <hive xmlns="uri:oozie:hive-action:0.4">
