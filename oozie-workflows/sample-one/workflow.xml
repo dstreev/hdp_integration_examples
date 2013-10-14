@@ -19,7 +19,9 @@
             <!-- Note that we are using an EL constant to get the running user.  This may not
                  work in your environment if Oozie is configured differently. -->
             <delete path="${namenode}/user/${wf:user()}/${target_dir_one}"/>
-            <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
+            <!-- Moved this to the 'prepare' section of the sqoop job to show
+                 an alternate method...
+            <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>-->
         </fs>
         <ok to="ingest"/>
         <error to="problem"/>
@@ -56,16 +58,9 @@
         <sqoop xmlns="uri:oozie:sqoop-action:0.4">
             <job-tracker>${jobtracker}</job-tracker>
             <name-node>${namenode}</name-node>
-            <!--<sqoop:prepare>-->
-            <!--<sqoop:delete path="${namenode}/user/hue/${target_dir_one}"/>-->
-            <!--<sqoop:mkdir path="${namenode}/user/hue/${target_dir_one}"/>-->
-            <!--</sqoop:prepare>-->
-            <!--<sqoop:configuration>-->
-            <!--<sqoop:property>-->
-            <!--<sqoop:name>oozie.use.system.libpath</sqoop:name>-->
-            <!--<sqoop:value>true</sqoop:value>-->
-            <!--</sqoop:property>-->
-            <!--</sqoop:configuration>-->
+            <prepare>
+                <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
+            </prepare>
             <arg>import</arg>
             <arg>--connect</arg>
             <arg>jdbc:mysql://localhost:3306/${mysql_db}?user=${mysql_user}&amp;password=${mysql_password}</arg>
