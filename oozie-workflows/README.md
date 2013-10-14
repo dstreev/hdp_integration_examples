@@ -48,7 +48,7 @@ Need to be uploaded to the above sharelib directory under "sqoop" to make it ava
 </td></tr><tr><td>
 Beware the Sandbox
 </td><td>
-When you do fork/join in Oozie, it will hang if you only have 2 mapper slots available. I deadlock situation occurs because there are not enough slots to process the job and the fork/join.
+When you do fork/join in Oozie, it will hang if you only have 2 mapper slots available. A deadlock situation occurs because there are not enough slots to process the job and the fork/join.
 </td></tr><tr><td>
 Hive Configuration
 </td><td>
