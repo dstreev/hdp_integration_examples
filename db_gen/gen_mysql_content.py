@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/usr/bin/env python
 import csv
 import mysql.connector
 import random
