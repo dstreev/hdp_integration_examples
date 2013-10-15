@@ -1,7 +1,7 @@
 DROP DATABASE IF EXISTS sample;
 CREATE DATABASE sample;
 
-CREATE TABLE sample_oozie.users (
+CREATE TABLE sample.users (
   id MEDIUMINT NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(100),
   last_name VARCHAR(100),
