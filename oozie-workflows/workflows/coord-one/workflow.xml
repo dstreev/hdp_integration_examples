@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow-app xmlns="uri:oozie:workflow:0.4"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xmlns:hive="uri:oozie:hive-action:0.2"
+              xmlns:email="uri:oozie:email-action:0.1"
+              xmlns:sqoop="uri:oozie:sqoop-action:0.4"
+              xmlns:shell="uri:oozie:shell-action:0.3"
+              xmlns:sla="uri:oozie:sla:0.1"
+              xmlns:ssh="uri:oozie:ssh-action:0.1"
+
+              xsi:schemaLocation="uri:oozie:workflow:0.4 http://oozie.apache.org/schemas/workflow-0.4
+    uri:oozie:hive-action:0.2  http://oozie.apache.org/schemas/hive-action-0.2
+    uri:oozie:email-action:0.1 http://oozie.apache.org/schemas/email-action-0.3
+    uri:oozie:sqoop-action:0.4 http://oozie.apache.org/schemas/sqoop-action-0.4
+    uri:oozie:shell-action:0.3 http://oozie.apache.org/schemas/shell-action-0.3
+    uri:oozie:ssh-action:0.1 http://oozie.apache.org/schemas/ssh-action-0.1
+    uri:oozie:sla:0.1 http://oozie.apache.org/schemas/sla-0.1"
+    name="coord-one">
+
+    <start to="coord-one_sqoop"/>
+    
+    <action name="coord-one_sqoop">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.4">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+            <job-xml>sqoop/sqoop-site.xml</job-xml>
+            <arg>job</arg>
+            <arg>--exec</arg>
+            <arg>coord-one</arg>
+            <arg>--meta-connect</arg>
+            <arg>jdbc:hsqldb:hsql://sandbox:16000/sqoop</arg>
+        </sqoop>
+        <ok to="end_success_email"/>
+        <error to="sqoop_check_exception"/>
+    </action>
+
+    <decision name="sqoop_check_exception">
+	<switch>
+	    <case to="sqoop_up_to_date_email">
+	    ${wf:errorMessage(wf:lastErrorNode()) eq 'IllegalArgumentException: JobId string :  is not properly formed'}	
+	    </case>
+	    <default to="sqoop_error_email"/>
+	</switch>
+    </decision>
+
+    <action name="sqoop_up_to_date_email">
+        <email xmlns="uri:oozie:email-action:0.1">
+           <to>kkane@hortonworks.com</to>
+	    <subject>Workflow: coord-one - The source database check-column has not changed since the last import. </subject>
+        <body>Sqoop conducted an import, however, no new rows were detected in the source table</body>
+        </email>
+        <ok to="endworkflow"/>
+        <error to="endworkflow"/>
+    </action>
+
+
+    <action name="sqoop_error_email">
+        <email xmlns="uri:oozie:email-action:0.1">
+           <to>kkane@hortonworks.com</to>
+          <!-- <cc></cc> -->
+           <subject>Failed action: coord-one_sqoop of oozie job coord-one</subject>
+           <body>The coord-one import failed.  The staging directory is empty.  The target directory
+            remains. Error: ${wf:errorMessage(wf:lastErrorNode())}</body>
+        </email>
+        <ok to="killworkflow"/>
+        <error to="killworkflow"/>
+    </action>
+
+    <action name="end_success_email">
+        <email xmlns="uri:oozie:email-action:0.1">
+           <to>kkane@hortonworks.com</to>
+          <!-- <cc></cc> -->
+           <subject>Workflow: coord-one successfully imported.</subject>
+           <body>${hadoop:counters("coord-one_sqoop")["org.apache.hadoop.mapred.Task$Counter"]["MAP_OUTPUT_RECORDS"]} rows were imported during the action: coord-one_sqoop.</body>
+        </email>
+        <ok to="endworkflow"/>
+        <error to="killworkflow"/>
+    </action>
+
+
+    <kill name="killworkflow">
+        <message>Job Terminated</message>
+    </kill>
+
+    <end name="endworkflow"/>
+</workflow-app>
