@@ -1,0 +1,1 @@
+sqoop import --connect 'jdbc:mysql://localhost:3306/sample' --username=sample --password=sample --table users --target-dir /user/$USER/coord_dump --columns 'id,first_name,last_name,state_code,city,zipcode' --split-by id --check-column id --last-value 0 --incremental append
