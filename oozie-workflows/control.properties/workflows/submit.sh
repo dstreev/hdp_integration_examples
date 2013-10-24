@@ -12,7 +12,7 @@ hadoop fs -rmr $BASE_WF_DIR/$WORK_FLOW
 # Copy the workflow to hdfs.
 hadoop fs -put ../../workflows/$WORK_FLOW $BASE_WF_DIR
 
-# For hive Actions to know about there environment, you need to include a hive-site.xml
+# For hive Actions to know about their environment, you need to include a hive-site.xml
 #hadoop fs -put /etc/hive/conf/hive-site.xml oozie-workflows/sample-one/hive
 
 # List the contents
