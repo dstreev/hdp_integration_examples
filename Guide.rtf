@@ -1,0 +1,142 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf390
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\froman\fcharset0 TimesNewRomanPSMT;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue255;\red38\green38\blue38;}
+{\info
+{\author Kristopher Kane}
+{\*\company Hortonworks}}\vieww12540\viewh15860\viewkind1\viewscale105
+\deftab720
+\pard\pardeftab720\ri0
+
+\f0\fs24 \cf0 Oozie/Sqoop/Hive PS Hackathon \
+\
+Goal: Create an environment, based on the HDP2 Sandbox, to run Oozie workflows.  \
+\
+Order of March:\
+ \
+1) Setup/Ingest data into MySQL\
+2) Create a Oozie workflow to ingest users and state data into Hive, then aggregate the data. \
+3) Create a Oozie coordinator that will periodically ingest new user data into Hive.\
+\
+\
+Environment Setup\
+\
+Provide the HDP2 Sandbox an Internet facing repo, or clone the repo and rsync it in. \
+git clone {\field{\*\fldinst{HYPERLINK "%22"}}{\fldrslt \cf2 \ul \ulc2 https://github.com/dstreev/hdp_integration_examples.git}}\cf2 \ul \ulc2 \
+\
+\cf0 \ulnone \
+-Login to the sandbox.\
+root@>useradd <username>\
+root@>passwd <username>\
+\
+-Add the user to the user's group to allow for Oozie proxy to HDFS\
+root@>usermod -a -G users <username>\
+\
+root@>su \'96 hdfs\
+hdfs@>hadoop  fs \'96mkdir /user/<username>\
+hdfs@>hadoop fs chown <username>:<username> /user/<username>\
+\
+-Upload the mysql-connector-java to HDFS\
+hdfs@>hadoop fs -put /usr/lib/sqoop/lib/mysql-connector-java.jar /user/oozie/share/lib/sqoop/\
+\
+hdfs@>exit\
+root@>su - <username>\
+\
+-Add the following to your .bash_profile:\
+OOZIE_URL=http://sandbox:11000/oozie\
+export OOZIE_URL\
+\
+-Pull down the repo from GitHub\
+user@> git clone {\field{\*\fldinst{HYPERLINK "%22"}}{\fldrslt \cf2 \ul https://github.com/dstreev/hdp_integration_examples.git}}\
+\
+-Initialize the database in the MySQL instance\
+(This will create db:sample;table:\{states,users\}\
+It will also add a script to /etc/cron.d/ to ingest a random number of users every minute)\
+\
+user@>/home/<username>hdp_integration_examples/db_gen/setup.sh  \
+( This will prompt for the root password to isnert the cron job)\
+\
+-Login as admin to Ambari.  Under the Oozie service change: \
+\pard\pardeftab720\sl400
+\cf3 oozie.service.WorkflowAppService.system.libpath = /user/oozie/share/lib\
+\
+oozie.service.SchemaService.wf.ext.schemas = shell-action-0.3.xsd,email-action-0.1.xsd,hive-action-0.4.xsd,sqoop-action-0.4.xsd,ssh-action-0.1.xsd,distcp-action-0.2.xsd,shell-action-0.3.xsd,oozie-sla-0.1.xsd,oozie-sla-0.2.xsd\
+\pard\pardeftab720\ri0
+\cf0 \
+-Create Sqoop metastore\
+\
+root@>mkdir /sqoop-metastore\
+\
+Edit /etc/sqoop/conf/sqoop-site.xml\
+\
+Enable/edit:\
+<property>\
+    <name>sqoop.metastore.client.autoconnect.url</name>\
+    <value>jdbc:hsqldb:hsql://sandbox:16000/sqoop</value>\
+    <description>The connect string to use when connecting to a\
+      job-management metastore. If unspecified, uses ~/.sqoop/.\
+      You can specify a different path here.\
+    </description>\
+  </property>\
+\
+At the bottom:\
+\
+<property>\
+    <name>sqoop.metastore.server.location</name>\
+    <value>/sqoop-metastore</value>\
+    <description>Path to the shared metastore database files.\
+    If this is not set, it will be placed in ~/.sqoop/.\
+    </description>\
+  </property>\
+<property>\
+    <name>sqoop.metastore.server.port</name>\
+    <value>16000</value>\
+    <description>Port that this metastore should listen on.\
+    </description>\
+  </property>\
+\
+-Uncoment the following: \
+\
+<property>\
+    <name>sqoop.metastore.client.record.password</name>\
+    <value>true</value>\
+    <description>If true, allow saved passwords in the metastore.\
+    </description>\
+  </property>\
+\
+-Run the metastore: \
+root@>nohup sqoop metastore > /sqoop-metastore/metastore.log &\
+\
+-Run the first workflow 'sample_one'\
+\
+user@>cd /home/<user>/hdp_integration_examples/oozie-workflows/control.properties/workflows\
+user@>./run-wf.sh sample-one/ kkane@hortonworks.com\
+\
+-Open the Oozie console at http://sandbox:11000/oozie - observe the workflow running\
+-Login to hive and view the tables created\
+user@>hive\
+hive>use sample_one;\
+hive>select count(*) users;   \
+\
+\
+-Run the coordinator job\
+user@>cd /home/<user>/hdp_integration_examples/oozie-workflows/control.properties/workflows/coord-one \
+\
+-View the sqoop_import.sh to understand a basic import.  Run the import\
+user@>./sqoop_import.sh\
+\
+-View the sqoop_import_job.sh to understand how to create a sqoop job. Notice the --last-value parameter.  This will start the import process at column id, value 0 and will store the last imported value in the metastore.  The following jobs will read the metastore and start at this value +1 for follow on jobs. \
+\
+-Create the job.\
+user@>./sqoop_imoprt_job.sh\
+-View the saved job in the Sqoop metastore\
+user@>sqoop job --list\
+\
+-Run the job\
+user@>sqoop job -exec coord-one\
+\
+-Observe as the MR job completes.  The Map input records indicates the number of rows inserted.  Wait one minute for additional rows to be inserted into MySQL from the cron job and execute the sqoop job again. \
+\
+-Schedule an Oozie coordinator job to run a workflow that automates the ingestion of the users table into HDFS
+\f1 \
+\
+}
