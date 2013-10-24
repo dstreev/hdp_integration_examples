@@ -84,11 +84,12 @@
             <!--
             This doesn't appear to be necessary when importing to Hive.  The directory in "target-dir" will
             be created for the import and then removed after the table has been loaded into hive.
-
+            (Kris) If the job fails around these steps, this dir will remain.  Adding the prepare statement back
+            -->
             <prepare>
                 <delete path="${namenode}/user/${wf:user()}/${target_dir_two}"/>
             </prepare>
-            -->
+            
             <job-xml>hive/hive-site.xml</job-xml>
             <arg>import</arg>
             <!--
@@ -111,7 +112,7 @@
                If the "target-dir" option is not specified, the HDFS directory for stage one is created in the users
                home directory.
             -->
-            <arg>-target-dir</arg>
+            <arg>--target-dir</arg>
             <arg>${namenode}/user/${wf:user()}/${target_dir_two}</arg>
             <arg>--hive-import</arg>
             <arg>--hive-overwrite</arg>

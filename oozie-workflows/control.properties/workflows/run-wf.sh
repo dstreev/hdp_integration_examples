@@ -26,4 +26,4 @@ cd $APP_PATH
 OOZIE_URL=http://localhost:11000/oozie
 
 # Submit and Start the job with one call.  To split it out, use submit then start.
-oozie job -config $WORKFLOW/$JOB.properties -run -verbose -Demailto=$EMAIL -Duser=$USER -Dhive.site=$HIVE_SITE
+oozie job -config $WORKFLOW/$JOB.properties -run -verbose -Demailto=$EMAIL -Duser=$USER -Dhive.site=$HIVE_SITE -Dhost=$HOSTNAME

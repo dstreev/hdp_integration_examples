@@ -11,4 +11,4 @@ echo "Ingesting sample data"
 /usr/bin/python $DIR/gen_mysql_content.py
 
 echo "Add entry to /etc/cron.d for random user ingest every 1 minute"
-su -c "echo '/1 * * * * root /usr/bin/python $DIR/random_user_insert.py' > /etc/cron.d/sample_random_users" root
+su -c "echo '*/1 * * * * root /usr/bin/python $DIR/random_user_insert.py' > /etc/cron.d/sample_random_users" root
