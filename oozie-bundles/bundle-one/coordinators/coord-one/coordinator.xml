@@ -1,0 +1,17 @@
+<coordinator-app name="${coordName}" frequency="${frequency}" start="${start}" end="${end}" timezone="America/Chicago" xmlns="uri:oozie:coordinator:0.2">
+        <action>
+        <workflow>
+            <app-path>${wfDir}</app-path>
+	    <configuration>
+		    <property>
+                <name>workflowName</name>
+                <value>${workflowName}</value>
+            </property>
+            <property>
+                <name>whichWorkflow</name>
+                <value>${whichWorkflow}</value>
+            </property>
+	    </configuration>
+        </workflow>
+    </action>
+</coordinator-app>
