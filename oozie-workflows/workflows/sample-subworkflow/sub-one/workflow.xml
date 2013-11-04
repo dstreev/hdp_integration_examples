@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<workflow-app xmlns="uri:oozie:workflow:0.4"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="uri:oozie:workflow:0.4 http://oozie.apache.org/schemas/workflow-0.4
+        uri:oozie:hive-action:0.4  http://oozie.apache.org/schemas/hive-action-0.4
+        uri:oozie:email-action:0.1  http://oozie.apache.org/schemas/email-action-0.1
+        uri:oozie:sqoop-action:0.4  http://oozie.apache.org/schemas/sqoop-action-0.4
+        uri:oozie:shell-action:0.2  http://oozie.apache.org/schemas/shell-action-0.2
+        uri:oozie:ssh-action:0.1  http://oozie.apache.org/schemas/ssh-action-0.1
+        uri:oozie:sla:0.1  http://oozie.apache.org/schemas/sla-0.1"
+                  name="sub-one">
+
+    <start to="makeDirectory"/>
+
+    <action name="makeDirectory">
+        <fs>
+            <mkdir path="${subDirOne}"/>
+        </fs>
+        <ok to="success"/>
+        <error to="problem"/>
+    </action>
+
+    <action name="success">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${emailto}</to>
+            <subject>Success with Oozie sub-workflow one</subject>
+            <body>Success with Oozie sub-workflow one</body>
+        </email>
+        <ok to="done"/>
+        <error to="done"/>
+    </action>
+    <action name="problem">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${emailto}</to>
+            <subject>Problem with Oozie sub-workflow one.</subject>
+            <body>Workflw Failed: message[${wf:errorMessage(wf:lastErrorNode())}]</body>
+        </email>
+        <ok to="kill"/>
+        <error to="kill"/>
+    </action>
+
+    <kill name="kill">
+        <message>"Workflow Failed: message[${wf:errorMessage(wf:lastErrorNode())}]"</message>
+    </kill>
+
+    <end name="done"/>
+</workflow-app>
